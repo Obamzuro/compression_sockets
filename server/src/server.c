@@ -6,7 +6,7 @@
 /*   By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/07 18:05:21 by obamzuro          #+#    #+#             */
-/*   Updated: 2018/10/13 23:57:52 by obamzuro         ###   ########.fr       */
+/*   Updated: 2018/10/14 00:23:56 by obamzuro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ void	send_error_header(int clientfd, enum e_errors error)
 
 	t_msgheader	responseHeader;
 
-	printf("\n ERROR #%d\n", error);
+	printf("ERROR #%d\n", error);
 	bzero(&responseHeader, sizeof(responseHeader));
 	responseHeader.magic = htonl(MAGIC);
 	responseHeader.status = htons(error);

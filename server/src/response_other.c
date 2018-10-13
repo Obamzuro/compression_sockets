@@ -6,7 +6,7 @@
 /*   By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/13 23:50:26 by obamzuro          #+#    #+#             */
-/*   Updated: 2018/10/13 23:59:28 by obamzuro         ###   ########.fr       */
+/*   Updated: 2018/10/14 00:21:02 by obamzuro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,7 +67,6 @@ void	response_getstats(int clientfd,
 	else
 		ratio = (unsigned char)((double)metadata->compressSent /
 				metadata->compressReceived * MAX_RATIO);
-	printf("ratio = %d", ratio);
 	stats.received = htonl(metadata->totalReceived);
 	stats.sent = htonl(metadata->totalSent);
 	dataSent = (char *)malloc(sizeof(t_msgheader) + sizeof(t_stats) + sizeof(ratio));
