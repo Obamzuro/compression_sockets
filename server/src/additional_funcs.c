@@ -6,7 +6,7 @@
 /*   By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/07 18:05:21 by obamzuro          #+#    #+#             */
-/*   Updated: 2018/10/14 23:25:35 by obamzuro         ###   ########.fr       */
+/*   Updated: 2018/10/15 00:20:07 by obamzuro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ void	send_error_header(int clientfd, t_metadata *metadata,
 	t_msgheader	responseHeader;
 	ssize_t		sendReturned;
 
-	printf("clientfd #%d - error #%d\n", clientfd, error);
+	printf("occured error #%d\n", error);
 	bzero(&responseHeader, sizeof(responseHeader));
 	responseHeader.magic = htonl(MAGIC);
 	responseHeader.status = htons(error);

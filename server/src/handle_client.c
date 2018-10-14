@@ -6,7 +6,7 @@
 /*   By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/07 18:05:21 by obamzuro          #+#    #+#             */
-/*   Updated: 2018/10/14 23:08:05 by obamzuro         ###   ########.fr       */
+/*   Updated: 2018/10/15 00:16:12 by obamzuro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,14 +36,14 @@ static enum e_errors	check_recvReturned(int clientfd, t_metadata *metadata,
 {
 	if (!recvReturned)
 	{
-		shutdown(clientfd, 2);
-		printf("clientfd #%d - closed\n", clientfd);
+		close(clientfd);
+		printf("client socket closed\n");
 		exit(EXIT_SUCCESS);
 	}
 	else if (recvReturned == -1)
 	{
 		close(clientfd);
-		printf("clientfd #%d - closed after failing recv()\n", clientfd);
+		printf("client socket closed after failing recv()\n");
 		exit(EXIT_FAILURE);
 	}
 	if (recvReturned < sizeof(t_msgheader))
@@ -112,9 +112,9 @@ void				handling_newclient(int clientfd)
 		// if request was found
 		if (i != AMOUNT_REQ_CODES)
 		{
-			printf("clientfd #%d - RC #%d\n", clientfd, responses[i].code);
+			printf("RC #%d received \n", responses[i].code);
 			error = responses[i].func(clientfd, &receivedHeader, &metadata);
-			printf("clientfd #%d - processed RC with status %d", clientfd, error);
+			printf("processed RC with status %d\n", error);
 		}
 		else
 			send_error_header(clientfd, &metadata, UNSUPPORTED_REQUEST_TYPE);

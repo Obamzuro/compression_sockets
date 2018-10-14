@@ -6,13 +6,15 @@
 #    By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2018/05/11 15:56:03 by obamzuro          #+#    #+#              #
-#    Updated: 2018/10/14 00:14:12 by obamzuro         ###   ########.fr        #
+#    Updated: 2018/10/14 23:38:40 by obamzuro         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME = client
 
-SRCNAME = 	client.c
+SRCNAME = 	client.c\
+			requests.c\
+			additional_funcs.c
 
 FLAGS = -g
 

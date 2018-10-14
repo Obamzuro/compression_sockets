@@ -6,7 +6,7 @@
 /*   By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/13 23:50:41 by obamzuro          #+#    #+#             */
-/*   Updated: 2018/10/14 23:25:44 by obamzuro         ###   ########.fr       */
+/*   Updated: 2018/10/15 00:22:36 by obamzuro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -98,7 +98,8 @@ static void		compress_and_response_payload(int clientfd,
 	memcpy(dataSent + sizeof(responseHeader), compressedStr, compressedStrLen);
 	sendReturned = send(clientfd, dataSent, sizeof(t_msgheader) + compressedStrLen, 0);
 
-	change_metadata(metadata, 0, sendReturned, 0, sendReturned - sizeof(t_msgheader));
+	change_metadata(metadata, 0, sendReturned,
+			receivedHeader->payloadlen, sendReturned - sizeof(t_msgheader));
 	free(dataSent);
 	free(compressedStr);
 }
@@ -116,12 +117,12 @@ static enum e_errors	recv_str(int clientfd, t_metadata *metadata,
 
 	*receivedStr = (char *)malloc(receivedStrLen + 1);
 	recvReturned = recv(clientfd, *receivedStr, receivedStrLen, 0);
-	change_metadata(metadata, recvReturned, 0, recvReturned, 0);
+	change_metadata(metadata, recvReturned, 0, 0, 0);
 	if (recvReturned == -1)
 	{
 		free(*receivedStr);
 		close(clientfd);
-		printf("clientfd #%d - closed after failing recv()\n", clientfd);
+		printf("client socket closed after failing recv()\n");
 		exit(EXIT_FAILURE);
 	}
 	if (recvReturned < receivedStrLen)

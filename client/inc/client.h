@@ -6,7 +6,7 @@
 /*   By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/07 18:06:26 by obamzuro          #+#    #+#             */
-/*   Updated: 2018/10/14 21:22:35 by obamzuro         ###   ########.fr       */
+/*   Updated: 2018/10/14 23:36:26 by obamzuro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,4 +52,8 @@ void				request_ping(int servfd, char **cmdLineDivided);
 void				request_compress(int servfd, char **cmdLineDivided);
 void				request_getstats(int sockfd, char **cmdLineDivided);
 void				request_resetstats(int sockfd, char **cmdLineDivided);
+
+void				print_help(void);
+void				print_header(t_msgheader *header);
+void				print_stats(char *data);
 #endif

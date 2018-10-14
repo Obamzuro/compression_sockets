@@ -6,7 +6,7 @@
 /*   By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/07 18:05:21 by obamzuro          #+#    #+#             */
-/*   Updated: 2018/10/14 23:25:40 by obamzuro         ###   ########.fr       */
+/*   Updated: 2018/10/14 23:53:27 by obamzuro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ void	listening(int servfd)
 			perror("server: accept");
 			continue ;
 		}
-		printf("clientfd #%d - connected\n", clientfd);
+		printf("new client connected\n");
 		pid = fork();
 		if (pid < 0)
 			perror("fork");
