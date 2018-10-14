@@ -6,7 +6,7 @@
 #    By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2018/05/11 15:56:03 by obamzuro          #+#    #+#              #
-#    Updated: 2018/10/14 00:13:23 by obamzuro         ###   ########.fr        #
+#    Updated: 2018/10/14 15:14:27 by obamzuro         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -15,7 +15,8 @@ NAME = server
 SRCNAME = 	server.c\
 			handle_client.c\
 			response_compress.c\
-			response_other.c
+			response_other.c\
+			additional_funcs.c
 
 FLAGS = -g
 

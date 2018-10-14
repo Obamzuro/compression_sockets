@@ -6,7 +6,7 @@
 /*   By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/07 18:06:26 by obamzuro          #+#    #+#             */
-/*   Updated: 2018/10/14 00:11:33 by obamzuro         ###   ########.fr       */
+/*   Updated: 2018/10/14 21:07:41 by obamzuro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@
 # include <netdb.h>
 # include <pthread.h>
 # include <ctype.h>
+# include <signal.h>
 # include "libft.h"
 # define BACKLOG 4
 # define AMOUNT_REQ_CODES 4
@@ -30,11 +31,11 @@
 
 enum				e_errors
 {
-	UKNOWN_ERROR = 1,
+	OK = 0,
+	UKNOWN_ERROR,
 	MESSAGE_TOO_LARGE,
 	UNSUPPORTED_REQUEST_TYPE,
-	RECV_ERROR = 33,
-	HEADER_WRONG_LEN,
+	HEADER_WRONG_LEN = 33,
 	HEADER_WRONG_MAGIC,
 	PAYLOAD_WRONG_LEN,
 	PAYLOAD_NOT_ALPHA,
@@ -73,23 +74,17 @@ enum				e_commandcode
 typedef struct		s_responsemap
 {
 	enum e_commandcode	code;
-	void				(*func)(int clientfd,
+	enum e_errors		(*func)(int clientfd,
 			t_msgheader *msgheader, t_metadata *metadata);
 }					t_responsemap;
 
-typedef struct		s_threadinfo
-{
-	int			clientfd;
-	t_metadata	*metadata;
-}					t_threadinfo;
+enum e_errors		response_ping(int clientfd, t_msgheader *reqheader, t_metadata *metadata);
+enum e_errors		response_compress(int clientfd, t_msgheader *reqheader, t_metadata *metadata);
+enum e_errors		response_getstats(int clientfd, t_msgheader *reqheader, t_metadata *metadata);
+enum e_errors		response_resetstats(int clientfd, t_msgheader *reqheader, t_metadata *metadata);
 
-void				response_ping(int clientfd, t_msgheader *reqheader, t_metadata *metadata);
-void				response_compress(int clientfd, t_msgheader *reqheader, t_metadata *metadata);
-void				response_getstats(int clientfd, t_msgheader *reqheader, t_metadata *metadata);
-void				response_resetstats(int clientfd, t_msgheader *reqheader, t_metadata *metadata);
-
-void				*handling_newclient(void *arg);
-void				send_error_header(int clientfd, enum e_errors error);
+void				handling_newclient(int clientfd);
+void				send_error_header(int clientfd, t_metadata *metadata, enum e_errors error);
 void				change_metadata(t_metadata *metadata,
 					uint16_t totalReceived, uint16_t totalSent,
 					uint16_t compressReceived, uint16_t compressSent);

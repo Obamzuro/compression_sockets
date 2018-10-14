@@ -6,7 +6,7 @@
 /*   By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/13 23:50:41 by obamzuro          #+#    #+#             */
-/*   Updated: 2018/10/13 23:50:45 by obamzuro         ###   ########.fr       */
+/*   Updated: 2018/10/14 23:25:44 by obamzuro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,7 @@ static void		memcpy_compressed_case(int amountRepeating,
 ** Compression algorithm on data - payload string
 ** with datalen - length of payload
 ** amountRepeating - amount of repeating letters on (char *)data position
+** endReturnedLine - end of returnedLine
 */
 
 char			*compress_data(char *data, uint16_t datalen)
@@ -72,10 +73,10 @@ char			*compress_data(char *data, uint16_t datalen)
 }
 
 /*
-** Compressing payload and sent header with compressed data
+** Compressing payload and send header with compressed data
 */
 
-static void		response_compressed_payload(int clientfd,
+static void		compress_and_response_payload(int clientfd,
 		t_msgheader *receivedHeader, char *receivedStr,
 		t_metadata *metadata)
 {
@@ -83,18 +84,21 @@ static void		response_compressed_payload(int clientfd,
 	char			*compressedStr;
 	uint16_t		compressedStrLen;
 	char			*dataSent;
+	ssize_t			sendReturned;
 
 	compressedStr = compress_data(receivedStr, receivedHeader->payloadlen);
 	compressedStrLen = strlen(compressedStr);
+
 	bzero(&responseHeader, sizeof(responseHeader));
 	responseHeader.magic = htonl(MAGIC);
 	responseHeader.payloadlen = htons(compressedStrLen);
+
 	dataSent = (char *)malloc(sizeof(t_msgheader) + compressedStrLen);
 	memcpy(dataSent, &responseHeader, sizeof(responseHeader));
 	memcpy(dataSent + sizeof(responseHeader), compressedStr, compressedStrLen);
-	send(clientfd, dataSent, sizeof(t_msgheader) + compressedStrLen, 0);
-	change_metadata(metadata, receivedHeader->payloadlen, compressedStrLen,
-			receivedHeader->payloadlen, compressedStrLen);
+	sendReturned = send(clientfd, dataSent, sizeof(t_msgheader) + compressedStrLen, 0);
+
+	change_metadata(metadata, 0, sendReturned, 0, sendReturned - sizeof(t_msgheader));
 	free(dataSent);
 	free(compressedStr);
 }
@@ -105,33 +109,35 @@ static void		response_compressed_payload(int clientfd,
 ** if value less than specified in header
 */
 
-static char		*recv_str(int clientfd, uint16_t receivedStrLen,
-		t_metadata *metadata)
+static enum e_errors	recv_str(int clientfd, t_metadata *metadata,
+		uint16_t receivedStrLen, char **receivedStr)
 {
-	char			*receivedStr;
-	int				recvReturned;
+	ssize_t			recvReturned;
 
-	receivedStr = (char *)malloc(receivedStrLen + 1);
-	recvReturned = recv(clientfd, receivedStr, receivedStrLen, 0);
+	*receivedStr = (char *)malloc(receivedStrLen + 1);
+	recvReturned = recv(clientfd, *receivedStr, receivedStrLen, 0);
+	change_metadata(metadata, recvReturned, 0, recvReturned, 0);
 	if (recvReturned == -1)
 	{
-		send_error_header(clientfd, RECV_ERROR);
-		free(receivedStr);
-		return (NULL);
+		free(*receivedStr);
+		close(clientfd);
+		printf("clientfd #%d - closed after failing recv()\n", clientfd);
+		exit(EXIT_FAILURE);
 	}
 	if (recvReturned < receivedStrLen)
 	{
-		send_error_header(clientfd, PAYLOAD_WRONG_LEN);
+		send_error_header(clientfd, metadata, PAYLOAD_WRONG_LEN);
 		change_metadata(metadata, recvReturned, 0, 0, 0);
-		free(receivedStr);
-		return (NULL);
+		free(*receivedStr);
+		return (PAYLOAD_WRONG_LEN);
 	}
-	receivedStr[receivedStrLen] = '\0';
-	return (receivedStr);
+	(*receivedStr)[receivedStrLen] = '\0';
+	return (OK);
 }
 
 /*
-** Check if string contains only lowercase english chars
+** Check if string contains
+** only lowercase english chars
 */
 
 static int		is_strlowercase(char *str)
@@ -143,38 +149,55 @@ static int		is_strlowercase(char *str)
 }
 
 /*
-** Response Compress RC
-** check case if payloadLen bigger than limit of payloadLen
-** check case if payloadlen is 0
-** recv payload and check error cases from recv_str() func
-** check if received payload consists of only lowercase english chars
+** Check case if payloadLen bigger than limit of payloadLen
+** Check case if payloadlen is 0
 */
 
-void			response_compress(int clientfd,
+static enum e_errors	check_header(int clientfd,
 		t_msgheader *receivedHeader, t_metadata *metadata)
 {
-	char			*receivedStr;
-
 	if (receivedHeader->payloadlen > MAX_PAYLOAD_LEN)
 	{
-		send_error_header(clientfd, MESSAGE_TOO_LARGE);
-		return ;
+		send_error_header(clientfd, metadata, MESSAGE_TOO_LARGE);
+		return (MESSAGE_TOO_LARGE);
 	}
 	if (!receivedHeader->payloadlen)
 	{
-		send_error_header(clientfd, PAYLOAD_ZERO_LEN);
-		return ;
+		send_error_header(clientfd, metadata, PAYLOAD_ZERO_LEN);
+		return (PAYLOAD_ZERO_LEN);
 	}
-	if (!(receivedStr = recv_str(clientfd, receivedHeader->payloadlen, metadata)))
-		return ;
+	return (OK);
+}
+
+/*
+** Response Compress RC:
+** - check header
+** - receive payload
+** - check payload
+** - compress payload (in func compress_and_response_payload())
+** - send payload (in func compress_and_response_payload())
+*/
+
+enum e_errors	response_compress(int clientfd, t_msgheader *receivedHeader,
+		t_metadata *metadata)
+{
+	char			*receivedStr;
+	enum e_errors	error;
+
+	if ((error = check_header(clientfd, receivedHeader, metadata)) != OK)
+		return (error);
+	if ((error = recv_str(clientfd, metadata,
+				receivedHeader->payloadlen, &receivedStr)) != OK)
+		return (error);
 	if (!is_strlowercase(receivedStr))
 	{
-		send_error_header(clientfd, PAYLOAD_NOT_ALPHA);
+		send_error_header(clientfd, metadata, PAYLOAD_NOT_ALPHA);
 		change_metadata(metadata, strlen(receivedStr), 0, 0, 0);
 		free(receivedStr);
-		return ;
+		return (PAYLOAD_NOT_ALPHA);
 	}
-	response_compressed_payload(clientfd,
+	compress_and_response_payload(clientfd,
 			receivedHeader, receivedStr, metadata);
 	free(receivedStr);
+	return (OK);
 }

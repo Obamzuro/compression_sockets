@@ -6,60 +6,23 @@
 /*   By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/07 18:05:21 by obamzuro          #+#    #+#             */
-/*   Updated: 2018/10/14 00:23:56 by obamzuro         ###   ########.fr       */
+/*   Updated: 2018/10/14 23:25:40 by obamzuro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "server.h"
 
-pthread_mutex_t	g_metadataLock = PTHREAD_MUTEX_INITIALIZER;
-
 /*
-** Change total bytes stats and compress stats for server
-*/
-
-void	change_metadata(t_metadata *metadata,
-		uint16_t totalReceived, uint16_t totalSent,
-		uint16_t compressReceived, uint16_t compressSent)
-{
-	pthread_mutex_lock(&g_metadataLock);
-	metadata->totalReceived += totalReceived;
-	metadata->totalSent += totalSent;
-	metadata->compressReceived += compressReceived;
-	metadata->compressSent += compressSent;
-	pthread_mutex_unlock(&g_metadataLock);
-}
-
-/*
-** Generate header with certain error
-*/
-
-void	send_error_header(int clientfd, enum e_errors error)
-{
-
-	t_msgheader	responseHeader;
-
-	printf("ERROR #%d\n", error);
-	bzero(&responseHeader, sizeof(responseHeader));
-	responseHeader.magic = htonl(MAGIC);
-	responseHeader.status = htons(error);
-	send(clientfd, &responseHeader, sizeof(responseHeader), 0);
-}
-
-/*
-** Waiting for connection with server socket
+** Waiting for the new connection and
+** create new process for handling client
 */
 
 void	listening(int servfd)
 {
-	t_metadata			metadata;
 	pthread_t			ntid;
-	t_threadinfo		threadInfo;
 	int					clientfd;
+	pid_t				pid;
 
-	bzero(&threadInfo, sizeof(threadInfo));
-	bzero(&metadata, sizeof(metadata));
-	threadInfo.metadata = &metadata;
 	while (1)
 	{
 		if ((clientfd = accept(servfd, NULL, NULL)) < 0)
@@ -67,9 +30,35 @@ void	listening(int servfd)
 			perror("server: accept");
 			continue ;
 		}
-		threadInfo.clientfd = clientfd;
-		pthread_create(&ntid, NULL, &handling_newclient, &threadInfo);
+		printf("clientfd #%d - connected\n", clientfd);
+		pid = fork();
+		if (pid < 0)
+			perror("fork");
+		else if (pid == 0)
+			handling_newclient(clientfd);
+		close(clientfd);
 	}
+}
+
+void	signal_handler(int sig)
+{
+	if (sig == SIGCHLD)
+		wait(NULL);
+}
+
+/*
+** Handle SIGCHLD signal for prevent
+** creating zombie-processes
+*/
+
+void	setup_signal_handler(void)
+{
+	struct sigaction act;
+
+	bzero(&act, sizeof(act));
+	act.sa_handler = signal_handler;
+	act.sa_flags |= SA_RESTART;
+	sigaction(SIGCHLD, &act, 0);
 }
 
 /*
@@ -81,7 +70,7 @@ int		main(int argc, char **argv)
 	int					servfd;
 	struct sockaddr_in	sockaddr;
 
-	if (argc < 2 || !atoi(argv[1]))
+	if (argc < 2 || (!atoi(argv[1]) && strcmp(argv[1], "0")))
 	{
 		fprintf(stderr, "Usage: ./server [port]\n");
 		exit(EXIT_FAILURE);
@@ -101,6 +90,7 @@ int		main(int argc, char **argv)
 		perror("bind");
 		exit(EXIT_FAILURE);
 	}
+	setup_signal_handler();
 	listen(servfd, BACKLOG);
 	listening(servfd);
 }

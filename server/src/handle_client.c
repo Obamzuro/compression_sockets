@@ -6,94 +6,91 @@
 /*   By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/07 18:05:21 by obamzuro          #+#    #+#             */
-/*   Updated: 2018/10/14 00:11:46 by obamzuro         ###   ########.fr       */
+/*   Updated: 2018/10/14 23:08:05 by obamzuro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "server.h"
 
 /*
-** Check received Header that sent client
+** Check received header
 */
 
-static int			check_receivedHeader(int clientfd, t_metadata *metadata,
+static enum e_errors	check_receivedHeader(int clientfd, t_metadata *metadata,
 		t_msgheader *receivedHeader)
 {
 	if (receivedHeader->magic != MAGIC)
 	{
-		send_error_header(clientfd, HEADER_WRONG_MAGIC);
-		change_metadata(metadata, sizeof(t_msgheader), sizeof(t_msgheader), 0, 0);
-		return (-1);
+		send_error_header(clientfd, metadata, HEADER_WRONG_MAGIC);
+		return (HEADER_WRONG_MAGIC);
 	}
-	if (receivedHeader->status > AMOUNT_REQ_CODES || !receivedHeader->status)
-	{
-		send_error_header(clientfd, UNSUPPORTED_REQUEST_TYPE);
-		change_metadata(metadata, sizeof(t_msgheader), sizeof(t_msgheader), 0, 0);
-		return (-1);
-	}
-	return (0);
+	return (OK);
 }
 
 /*
-** Check returned value of function recv
+** Check returned value of function recv()
 */
 
-static int			check_recvReturned(int clientfd, t_metadata *metadata,
-		int recvReturned)
+static enum e_errors	check_recvReturned(int clientfd, t_metadata *metadata,
+		ssize_t recvReturned)
 {
-	if (recvReturned == -1)
+	if (!recvReturned)
 	{
-		send_error_header(clientfd, RECV_ERROR);
-		return (-1);
+		shutdown(clientfd, 2);
+		printf("clientfd #%d - closed\n", clientfd);
+		exit(EXIT_SUCCESS);
+	}
+	else if (recvReturned == -1)
+	{
+		close(clientfd);
+		printf("clientfd #%d - closed after failing recv()\n", clientfd);
+		exit(EXIT_FAILURE);
 	}
 	if (recvReturned < sizeof(t_msgheader))
 	{
-		send_error_header(clientfd, HEADER_WRONG_LEN);
-		change_metadata(metadata, recvReturned, sizeof(t_msgheader), 0, 0);
-		return (-1);
+		send_error_header(clientfd, metadata, HEADER_WRONG_LEN);
+		return (HEADER_WRONG_LEN);
 	}
-	return (0);
+	return (OK);
 }
 
 /*
-** Recv and check header that sent client
+** Receive header and check it
 */
 
-static t_msgheader	*recv_header(int clientfd, t_metadata *metadata)
+static enum e_errors	recv_header(int clientfd, t_metadata *metadata,
+		t_msgheader *receivedHeader)
 {
-	t_msgheader		*receivedHeader;
-	int				recvReturned;
+	ssize_t			recvReturned;
+	enum e_errors	error;
 
-	receivedHeader = (t_msgheader *)malloc(sizeof(t_msgheader));
-	recvReturned = recv(clientfd, receivedHeader, sizeof(*receivedHeader), 0);
-	if (check_recvReturned(clientfd, metadata, recvReturned))
-	{
-		free(receivedHeader);
-		return (NULL);
-	}
+	recvReturned = recv(clientfd, receivedHeader,
+				sizeof(*receivedHeader), 0);
+	change_metadata(metadata, recvReturned, 0, 0, 0);
+	if ((error = check_recvReturned(clientfd, metadata, recvReturned)) != OK)
+		return (error);
 	receivedHeader->status = ntohs(receivedHeader->status);
 	receivedHeader->payloadlen = ntohs(receivedHeader->payloadlen);
 	receivedHeader->magic = ntohl(receivedHeader->magic);
-	if (check_receivedHeader(clientfd, metadata, receivedHeader))
-	{
-		free(receivedHeader);
-		return (NULL);
-	}
-	return (receivedHeader);
+	if ((error = check_receivedHeader(clientfd, metadata, receivedHeader)) != OK)
+		return (error);
+	return (OK);
 }
 
 /*
-** Handle new connection with client
-** in the new thread
+** Handle new connection with client:
+** - Waiting for receiving new header
+** with RequestCode from client
+** - Call function for corresponding RC
+** or send error header to client
 */
 
-void				*handling_newclient(void *arg)
+void				handling_newclient(int clientfd)
 {
-	t_msgheader		*receivedHeader;
-	t_metadata		*metadata;
-	t_threadinfo	threadInfo;
-	int				clientfd;
+	t_msgheader		receivedHeader;
+	t_metadata		metadata;
 	int				i;
+	enum e_errors	error;
 	t_responsemap	responses[AMOUNT_REQ_CODES] =
 	{
 		{PING, response_ping},
@@ -102,24 +99,25 @@ void				*handling_newclient(void *arg)
 		{RESETSTATS, response_resetstats}
 	};
 
-
-	threadInfo = *((t_threadinfo *)arg);
-	clientfd = threadInfo.clientfd;
-	metadata = threadInfo.metadata;
-	if (!(receivedHeader = recv_header(clientfd, metadata)))
-		return (NULL);
-	i = -1;
-	while (++i != AMOUNT_REQ_CODES)
+	bzero(&metadata, sizeof(metadata));
+	while (1)
 	{
-		if (receivedHeader->status == responses[i].code)
+		if ((error = recv_header(clientfd, &metadata, &receivedHeader)) != OK)
+			continue ;
+		i = -1;
+		while (++i != AMOUNT_REQ_CODES)
+			if (receivedHeader.status == responses[i].code)
+				break ;
+
+		// if request was found
+		if (i != AMOUNT_REQ_CODES)
 		{
-			responses[i].func(clientfd, receivedHeader, metadata);
-			break ;
+			printf("clientfd #%d - RC #%d\n", clientfd, responses[i].code);
+			error = responses[i].func(clientfd, &receivedHeader, &metadata);
+			printf("clientfd #%d - processed RC with status %d", clientfd, error);
 		}
+		else
+			send_error_header(clientfd, &metadata, UNSUPPORTED_REQUEST_TYPE);
 	}
-	if (i != AMOUNT_REQ_CODES && receivedHeader->status != RESETSTATS)
-		change_metadata(metadata, sizeof(t_msgheader), sizeof(t_msgheader), 0, 0);
-	close(clientfd);
-	free(receivedHeader);
-	return (NULL);
+	exit(UKNOWN_ERROR);
 }
