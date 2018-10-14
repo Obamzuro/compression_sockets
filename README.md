@@ -12,13 +12,15 @@ delimited by separator, into several sublines.
 char *ft_itoa(int) - function, that transforms integer to string
 AND returns its new allocated string (unlike itoa() with needed buffer in params)
 
+...
+
 Assumptions while implementing solution:
 - I couldn't understand the logic of calculating stats,
 what real situation after ResetStats response(zero stats after receiving
-this request or after responsing to client)
+this request or after responsing to client?)
 and same for other requests
-- Is needed null-termnator after responses/requests
-- Is server should be demon
-- Is needed separated process for every client
+- Is needed null-termnator after responses/requests?
+- Is server should be demon?
+- Is needed separated process for every client?
 
 I think, if I had more time, I would deal with select()/epoll()
