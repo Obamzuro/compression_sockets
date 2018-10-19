@@ -114,10 +114,6 @@ t_list			*ft_list_last(t_list *begin_list);
 char			*ft_strcpy_gnl(char *dst, const char *src);
 int				get_next_line(const int fd, char **line);
 
-size_t			ft_nbr_size(intmax_t n);
-size_t			ft_nbr_basesize(intmax_t n, char base, char alternative);
-size_t			ft_unbr_basesize(uintmax_t n, char base, char alternative);
-
 void			ft_swap_pointers(void **ptr1, void **ptr2);
 void			ft_iswap(int *ptr1, int *ptr2);
 void			ft_dswap(double *ptr1, double *ptr2);
@@ -135,8 +131,6 @@ char			*ft_strjoin_inner(const char *s1, const char *s2, int pos);
 void			init_ftvector(t_ftvector *vec);
 void			free_ftvector(t_ftvector *vec);
 void			push_ftvector(t_ftvector *vec, void *line);
-
-void			ft_strreverse(char *str, uint64_t strlen);
 
 void			print_memory(const void *addr, unsigned int size);
 

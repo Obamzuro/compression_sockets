@@ -14,6 +14,13 @@ AND returns its new allocated string (unlike itoa() with needed buffer in params
 
 ...
 
+My own errors:
+HEADER_WRONG_LEN - 33, if header has wrong amount of bytes
+HEADER_WRONG_MAGIC - 34, if header has wrong magic
+PAYLOAD_WRONG_LEN - 35, if payload length in header greater than amount of bytes read for payload message
+PAYLOAD_NOT_ALPHA - 36, if payload consists of not only a-z letters
+PAYLOAD_ZERO_LEN - 37, if payload length is zero
+
 Assumptions while implementing solution:
 - I couldn't understand the logic of calculating stats,
 what real situation after ResetStats response(zero stats after receiving

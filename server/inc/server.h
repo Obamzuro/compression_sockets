@@ -17,6 +17,7 @@
 # include <unistd.h>
 # include <strings.h>
 # include <sys/socket.h>
+# include <sys/wait.h>
 # include <netinet/in.h>
 # include <netdb.h>
 # include <pthread.h>

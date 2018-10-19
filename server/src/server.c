@@ -92,5 +92,6 @@ int		main(int argc, char **argv)
 	}
 	setup_signal_handler();
 	listen(servfd, BACKLOG);
+	printf("Server runned\n");
 	listening(servfd);
 }

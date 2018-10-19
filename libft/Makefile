@@ -77,11 +77,9 @@ SRCNAME =   ft_memset.c				\
 			ft_list_last.c			\
 			ft_strcpy_gnl.c			\
 			get_next_line.c			\
-			ft_nbr_size.c				\
 			ft_swap.c				\
 			ft_eol.c				\
 			ft_vector.c				\
-			ft_strreverse.c			\
 			print_memory.c			\
 			ft_is.c					\
 			ft_strfind.c
@@ -98,7 +96,7 @@ $(NAME): $(OBJECT)
 	ranlib $(NAME)
 
 %.o: %.c
-	gcc -g -Wall -Wextra -Wall -o $@ -c $< -I $(HDIR)
+	gcc -o $@ -c $< -I $(HDIR)
 
 clean:
 	rm -f $(OBJECT)
