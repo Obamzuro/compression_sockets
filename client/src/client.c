@@ -6,7 +6,7 @@
 /*   By: obamzuro <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/10/07 20:17:30 by obamzuro          #+#    #+#             */
-/*   Updated: 2018/10/15 00:09:36 by obamzuro         ###   ########.fr       */
+/*   Updated: 2018/10/19 18:40:47 by obamzuro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -115,7 +115,7 @@ int		main(int argc, char **argv)
 	{
 		fprintf(stderr, "$> ");
 		cmdLine = NULL;
-		if (get_next_line(STDIN_FILENO, &cmdLine) < 0)
+		if (get_next_line(STDIN_FILENO, &cmdLine) < 0 || !cmdLine)
 			break ;
 		requesting(servfd, cmdLine);
 		free(cmdLine);
